@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Student Compatibility System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .content {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 50px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.6s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #2a5298;
+            box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .checkbox-item:hover {
+            border-color: #2a5298;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(42, 82, 152, 0.2);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin-right: 8px;
+            width: auto;
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(30, 60, 114, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(30, 60, 114, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+            transition: width 0.5s ease;
+        }
+
+        .student-count {
+            text-align: center;
+            font-size: 1.2em;
+            color: #1e3c72;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .results-container {
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .class-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .class-header {
+            font-size: 2em;
+            color: #1e3c72;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #2a5298;
+        }
+
+        .seating-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .seat {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            border: 3px solid #2a5298;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .seat:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(42, 82, 152, 0.3);
+        }
+
+        .seat-number {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: #2a5298;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .student-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1e3c72;
+            margin-bottom: 10px;
+        }
+
+        .compatibility-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        .compat-high {
+            background: #4caf50;
+            color: white;
+        }
+
+        .compat-medium {
+            background: #ff9800;
+            color: white;
+        }
+
+        .compat-low {
+            background: #f44336;
+            color: white;
+        }
+
+        .student-info {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .analyze-all-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 20px 40px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(238, 90, 111, 0.4);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .analyze-all-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(238, 90, 111, 0.6);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .spinner {
+            width: 80px;
+            height: 80px;
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-top: 8px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .card {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .seating-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analyze-all-btn {
+                bottom: 20px;
+                right: 20px;
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="content">
+        <!-- Step 1: Number of Students -->
+        <div id="step1" class="card">
+            <h1>🎓 Student Compatibility System</h1>
+            <p class="subtitle">AI-Powered Seating Arrangement Generator</p>
+            
+            <div class="form-group">
+                <label>How many students are there?</label>
+                <input type="number" id="studentCount" min="2" max="100" placeholder="Enter number of students">
+            </div>
+            
+            <button class="btn" id="startBtn">Start Data Entry →</button>
+        </div>
+
+        <!-- Step 2: Student Details Entry -->
+        <div id="step2" class="card hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="student-count" id="currentStudent"></div>
+            
+            <h1>👤 Student Information</h1>
+            
+            <div class="form-group">
+                <label>Full Name:</label>
+                <input type="text" id="studentName" placeholder="Enter student name">
+            </div>
+            
+            <div class="form-group">
+                <label>Date of Birth:</label>
+                <input type="date" id="studentDOB">
+            </div>
+            
+            <div class="form-group">
+                <label>Class:</label>
+                <input type="text" id="studentClass" placeholder="e.g., 10-A, 12-B">
+            </div>
+            
+            <div class="form-group">
+                <label>Personality Type:</label>
+                <select id="studentPersonality">
+                    <option value="">Select...</option>
+                    <option value="introvert">Introvert</option>
+                    <option value="extrovert">Extrovert</option>
+                    <option value="ambivert">Ambivert</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Interests (select all that apply):</label>
+                <div class="checkbox-group" id="studentInterests"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Communication Style:</label>
+                <select id="studentCommStyle">
+                    <option value="">Select...</option>
+                    <option value="direct">Direct</option>
+                    <option value="diplomatic">Diplomatic</option>
+                    <option value="analytical">Analytical</option>
+                    <option value="emotional">Emotional</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Study Preferences:</label>
+                <select id="studentStudyPref">
+                    <option value="">Select...</option>
+                    <option value="group">Group Study</option>
+                    <option value="individual">Individual Study</option>
+                    <option value="mixed">Mixed</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Values & Priorities:</label>
+                <textarea id="studentValues" placeholder="e.g., honesty, teamwork, creativity, discipline"></textarea>
+            </div>
+            
+            <button class="btn" id="submitBtn">Submit Student Data →</button>
+        </div>
+
+        <!-- Step 3: Results -->
+        <div id="step3" class="results-container hidden"></div>
+    </div>
+
+    <button id="analyzeBtn" class="analyze-all-btn hidden">
+        🔮 Generate Seating Arrangements
+    </button>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h2>Analyzing compatibility patterns...</h2>
+            <p>Creating optimal seating arrangements</p>
+        </div>
+    </div>
+
+    <script>
+        const interests = [
+            'Sports', 'Music', 'Reading', 'Gaming', 'Travel', 'Cooking',
+            'Art', 'Technology', 'Nature', 'Movies', 'Fitness', 'Photography',
+            'Science', 'Math', 'Writing', 'Dancing'
+        ];
+
+        let totalStudents = 0;
+        let currentStudentIndex = 0;
+        let students = [];
+        let scene, camera, renderer, particles;
+
+        // Initialize 3D Background
+        function init3D() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const geometry = new THREE.BufferGeometry();
+            const particleCount = 1000;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i += 3) {
+                positions[i] = (Math.random() - 0.5) * 100;
+                positions[i + 1] = (Math.random() - 0.5) * 100;
+                positions[i + 2] = (Math.random() - 0.5) * 100;
+
+                colors[i] = Math.random() * 0.5 + 0.5;
+                colors[i + 1] = Math.random() * 0.5 + 0.5;
+                colors[i + 2] = 1;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+            const material = new THREE.PointsMaterial({
+                size: 0.5,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+
+            camera.position.z = 50;
+            animate3D();
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            particles.rotation.x += 0.0005;
+            particles.rotation.y += 0.001;
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function initializeInterests() {
+            const container = document.getElementById('studentInterests');
+            container.innerHTML = '';
+            interests.forEach(interest => {
+                container.innerHTML += `
+                    <label class="checkbox-item">
+                        <input type="checkbox" value="${interest}">
+                        ${interest}
+                    </label>
+                `;
+            });
+        }
+
+        function startDataEntry() {
+            console.log('startDataEntry called');
+            const countInput = document.getElementById('studentCount');
+            const count = parseInt(countInput.value);
+            console.log('Student count:', count);
+            
+            if (!count || count < 2) {
+                alert('Please enter at least 2 students!');
+                return;
+            }
+            
+            totalStudents = count;
+            currentStudentIndex = 0;
+            students = [];
+            
+            console.log('Hiding step1, showing step2');
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            initializeInterests();
+            updateProgress();
+            console.log('Data entry started successfully');
+        }
+
+        function updateProgress() {
+            const progress = ((currentStudentIndex) / totalStudents) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('currentStudent').textContent = 
+                `Student ${currentStudentIndex + 1} of ${totalStudents}`;
+        }
+
+        function getSelectedInterests() {
+            const checkboxes = document.querySelectorAll('#studentInterests input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function submitStudent() {
+            const name = document.getElementById('studentName').value;
+            const dob = document.getElementById('studentDOB').value;
+            const studentClass = document.getElementById('studentClass').value;
+            const personality = document.getElementById('studentPersonality').value;
+            const commStyle = document.getElementById('studentCommStyle').value;
+            const studyPref = document.getElementById('studentStudyPref').value;
+            const values = document.getElementById('studentValues').value;
+            const selectedInterests = getSelectedInterests();
+
+            if (!name || !dob || !studentClass || !personality || !commStyle || !studyPref || !values || selectedInterests.length === 0) {
+                alert('Please fill in all fields!');
+                return;
+            }
+
+            students.push({
+                id: currentStudentIndex,
+                name,
+                dob,
+                class: studentClass,
+                personality,
+                interests: selectedInterests,
+                commStyle,
+                studyPref,
+                values
+            });
+
+            currentStudentIndex++;
+
+            if (currentStudentIndex < totalStudents) {
+                // Clear form for next student
+                document.getElementById('studentName').value = '';
+                document.getElementById('studentDOB').value = '';
+                document.getElementById('studentClass').value = '';
+                document.getElementById('studentPersonality').value = '';
+                document.getElementById('studentCommStyle').value = '';
+                document.getElementById('studentStudyPref').value = '';
+                document.getElementById('studentValues').value = '';
+                document.querySelectorAll('#studentInterests input[type="checkbox"]').forEach(cb => cb.checked = false);
+                
+                updateProgress();
+            } else {
+                // All students entered
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('analyzeBtn').classList.remove('hidden');
+                displayStudentList();
+            }
+        }
+
+        function displayStudentList() {
+            const container = document.getElementById('step3');
+            container.classList.remove('hidden');
+            
+            const classesList = [...new Set(students.map(s => s.class))].sort();
+            
+            container.innerHTML = `
+                <div class="card">
+                    <h1>✅ Data Collection Complete</h1>
+                    <p class="subtitle">All students have been registered</p>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number">${students.length}</div>
+                            <div class="stat-label">Total Students</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${classesList.length}</div>
+                            <div class="stat-label">Classes</div>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin: 30px 0 20px; color: #1e3c72;">Registered Students by Class:</h3>
+                    ${classesList.map(cls => {
+                        const classStudents = students.filter(s => s.class === cls);
+                        return `
+                            <div style="margin-bottom: 20px; padding: 15px; background: #f5f7fa; border-radius: 10px;">
+                                <h4 style="color: #2a5298; margin-bottom: 10px;">Class ${cls} (${classStudents.length} students)</h4>
+                                <div style="color: #666;">${classStudents.map(s => s.name).join(', ')}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                    
+                    <p style="text-align: center; color: #666; margin-top: 30px;">
+                        Click the button below to generate optimal seating arrangements
+                    </p>
+                </div>
+            `;
+        }
+
+        function calculateCompatibility(s1, s2) {
+            let score = 0;
+            
+            // Interest compatibility (30%)
+            const commonInterests = s1.interests.filter(i => s2.interests.includes(i));
+            const totalInterests = new Set([...s1.interests, ...s2.interests]).size;
+            const interestScore = totalInterests > 0 ? (commonInterests.length / totalInterests) * 30 : 0;
+            
+            // Personality compatibility (25%)
+            const personalityMatrix = {
+                'introvert-introvert': 22,
+                'introvert-ambivert': 20,
+                'introvert-extrovert': 15,
+                'extrovert-extrovert': 20,
+                'extrovert-ambivert': 22,
+                'ambivert-ambivert': 25
+            };
+            const persKey1 = `${s1.personality}-${s2.personality}`;
+            const persKey2 = `${s2.personality}-${s1.personality}`;
+            const personalityScore = personalityMatrix[persKey1] || personalityMatrix[persKey2] || 18;
+            
+            // Communication style (20%)
+            const commMatrix = {
+                'direct-direct': 20,
+                'direct-analytical': 16,
+                'direct-diplomatic': 14,
+                'direct-emotional': 13,
+                'diplomatic-diplomatic': 18,
+                'diplomatic-analytical': 15,
+                'diplomatic-emotional': 17,
+                'analytical-analytical': 20,
+                'analytical-emotional': 12,
+                'emotional-emotional': 17
+            };
+            const commKey1 = `${s1.commStyle}-${s2.commStyle}`;
+            const commKey2 = `${s2.commStyle}-${s1.commStyle}`;
+            const commScore = commMatrix[commKey1] || commMatrix[commKey2] || 14;
+            
+            // Study preference (15%)
+            let studyScore = 10;
+            if (s1.studyPref === s2.studyPref) studyScore = 15;
+            else if (s1.studyPref === 'mixed' || s2.studyPref === 'mixed') studyScore = 12;
+            
+            // Values compatibility (10%)
+            const wordsA = s1.values.toLowerCase().split(/[\s,]+/).filter(w => w.length > 3);
+            const wordsB = s2.values.toLowerCase().split(/[\s,]+/).filter(w => w.length > 3);
+            const commonValues = wordsA.filter(w => wordsB.includes(w));
+            const totalValues = new Set([...wordsA, ...wordsB]).size;
+            const valuesScore = totalValues > 0 ? (commonValues.length / totalValues) * 10 : 5;
+            
+            score = interestScore + personalityScore + commScore + studyScore + valuesScore;
+            return Math.round(score);
+        }
+
+        function generateSeatingArrangement(classStudents) {
+            const compatibilityMatrix = {};
+            
+            // Calculate all pairwise compatibilities
+            for (let i = 0; i < classStudents.length; i++) {
+                for (let j = i + 1; j < classStudents.length; j++) {
+                    const score = calculateCompatibility(classStudents[i], classStudents[j]);
+                    const key = `${classStudents[i].id}-${classStudents[j].id}`;
+                    compatibilityMatrix[key] = score;
+                }
+            }
+            
+            // Simple greedy arrangement: pair high-compatibility students
+            const arranged = [];
+            const used = new Set();
+            
+            // Sort pairs by compatibility
+            const pairs = Object.entries(compatibilityMatrix)
+                .sort((a, b) => b[1] - a[1]);
+            
+            // Create pairs
+            for (const [key, score] of pairs) {
+                const [id1, id2] = key.split('-').map(Number);
+                if (!used.has(id1) && !used.has(id2)) {
+                    const s1 = classStudents.find(s => s.id === id1);
+                    const s2 = classStudents.find(s => s.id === id2);
+                    arranged.push({ students: [s1, s2], avgCompat: score });
+                    used.add(id1);
+                    used.add(id2);
+                }
+            }
+            
+            // Add remaining students as singles
+            classStudents.forEach(student => {
+                if (!used.has(student.id)) {
+                    arranged.push({ students: [student], avgCompat: 0 });
+                }
+            });
+            
+            return arranged;
+        }
+
+        async function analyzeAndArrange() {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            
+            const classesList = [...new Set(students.map(s => s.class))].sort();
+            const container = document.getElementById('step3');
+            
+            let html = '<div class="card"><h1>🎯 Seating Arrangements</h1><p class="subtitle">Optimized for compatibility</p></div>';
+            
+            classesList.forEach(cls => {
+                const classStudents = students.filter(s => s.class === cls);
+                const arrangement = generateSeatingArrangement(classStudents);
+                
+                html += `
+                    <div class="class-section">
+                        <div class="class-header">Class ${cls}</div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">${classStudents.length}</div>
+                                <div class="stat-label">Students</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">${arrangement.length}</div>
+                                <div class="stat-label">Seats</div>
+                            </div>
+                        </div>
+                        
+                        <div class="seating-grid">
+                            ${arrangement.map((seat, idx) => {
+                                const compatLevel = seat.avgCompat >= 70 ? 'high' : 
+                                                   seat.avgCompat >= 50 ? 'medium' : 'low';
+                                const compatClass = `compat-${compatLevel}`;
+                                const compatLabel = seat.avgCompat >= 70 ? '🌟 Excellent' : 
+                                                   seat.avgCompat >= 50 ? '✨ Good' : '🤝 Moderate';
+                                
+                                return `
+                                    <div class="seat">
+                                        <div class="seat-number">${idx + 1}</div>
+                                        ${seat.students.map(s => `
+                                            <div class="student-name">${s.name}</div>
+                                            <div class="student-info">
+                                                ${s.personality.charAt(0).toUpperCase() + s.personality.slice(1)} • 
+                                                ${s.interests.slice(0, 2).join(', ')}
+                                            </div>
+                                        `).join('')}
+                                        ${seat.students.length > 1 ? 
+                                            `<div class="compatibility-badge ${compatClass}">
+                                                ${compatLabel} (${seat.avgCompat}%)
+                                            </div>` : 
+                                            '<div class="compatibility-badge" style="background: #9e9e9e;">Single Seat</div>'
+                                        }
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            document.getElementById('loadingOverlay').classList.add('hidden');
+            document.getElementById('analyzeBtn').classList.add('hidden');
+            
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Event Listeners
+        document.getElementById('startBtn').addEventListener('click', startDataEntry);
+        document.getElementById('submitBtn').addEventListener('click', submitStudent);
+        document.getElementById('analyzeBtn').addEventListener('click', analyzeAndArrange);
+
+        // Initialize on load
+        init3D();
+    </script>
+</body>
+</html>
